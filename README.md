@@ -7,8 +7,10 @@ Docker with **nginx as the reverse proxy** and a **SQLite** database that is
 restored to its original state every 5 minutes.
 
 > **Warning:** this application contains deliberate weaknesses for teaching.
-> Run it only in an isolated teaching lab, with fictional data. Never expose it
-> to the public internet, and never reuse the code in a real product.
+> The classroom instance is intentionally reachable from home, so treat it as a
+> temporary public lab: use fictional data only, keep the admin account private,
+> monitor the VM, and shut it down after the unit. Never reuse the code in a
+> real product.
 >
 > This repository is a classroom teaching resource. The teacher holds the
 > staff/admin credentials and the answer key separately.
@@ -162,23 +164,31 @@ gcloud config set project YOUR_PROJECT_ID
 gcloud services enable compute.googleapis.com iap.googleapis.com
 ```
 
-Find the public IP of the school network (run this from a school machine):
+### 2. Firewall: home access
 
-```bash
-curl -4 ifconfig.me
-```
-
-### 2. Firewall: only your classroom
-
-Do **not** open port 8080 to `0.0.0.0/0`.
+This classroom deployment lets students work from home, so port 8080 is open to
+the internet:
 
 ```bash
 gcloud compute firewall-rules create campusconnect-web \
   --allow=tcp:8080 \
-  --source-ranges=YOUR_SCHOOL_IP/32 \
+  --source-ranges=0.0.0.0/0 \
   --target-tags=campusconnect \
-  --description="CampusConnect student lab"
+  --description="CampusConnect home-access lab"
+```
 
+If the rule already exists, update it:
+
+```bash
+gcloud compute firewall-rules update campusconnect-web --source-ranges=0.0.0.0/0
+```
+
+> The app is intentionally vulnerable and now publicly reachable. Use fictional
+> data only, keep the admin account private, and shut the VM down after the unit.
+
+SSH via IAP only:
+
+```bash
 gcloud compute firewall-rules create campusconnect-ssh \
   --allow=tcp:22 \
   --source-ranges=35.235.240.0/20 \
@@ -190,10 +200,11 @@ gcloud compute firewall-rules create campusconnect-ssh \
 Cloud Shell or any authorised machine without exposing port 22 to the school
 network.
 
-If the school's public IP changes, update only the web rule:
+To **restrict** the app to the school later, run `curl -4 ifconfig.me` from a
+school machine and update the web rule:
 
 ```bash
-gcloud compute firewall-rules update campusconnect-web --source-ranges=NEW_IP/32
+gcloud compute firewall-rules update campusconnect-web --source-ranges=YOUR_SCHOOL_IP/32
 ```
 
 If this is a dedicated project, check whether the default network has a broad
@@ -315,14 +326,14 @@ gcloud compute firewall-rules delete campusconnect-web campusconnect-ssh
 
 ### Notes
 
-- Keep SSH restricted to IAP. Do not expose port 8080 to the whole internet.
-- Because the firewall allows only the school public IP, students must be on
-  the school network (or a school VPN) to reach the app. Add all school egress
-  IPs to `--source-ranges` if your school uses more than one.
+- Keep SSH restricted to IAP.
+- The current deployment allows home access, so port 8080 is open to the
+  internet. The app is intentionally vulnerable; use fictional data only,
+  monitor the VM, and shut it down after the unit. To restrict it again, set
+  `--source-ranges=YOUR_SCHOOL_IP/32`.
 - Use a dedicated, low-privilege project with no real data.
-- The app is intentionally vulnerable. HTTP is acceptable only for this
-  restricted, fictional-data lab; add HTTPS if you ever expose it beyond the
-  classroom.
+- HTTP is used for this temporary lab. Add HTTPS if you keep the app beyond the
+  unit or use real data.
 - The reset sidecar is a convenience, not a security control.
 
 ## Customising

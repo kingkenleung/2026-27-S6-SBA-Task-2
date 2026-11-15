@@ -19,27 +19,24 @@ SRC = BASE / "STUDENT_INSTRUCTIONS.md"
 OUT = BASE / "STUDENT_INSTRUCTIONS.docx"
 GITHUB_DOCS = "https://github.com/kingkenleung/2026-27-S6-SBA-Task-2/blob/main/docs/"
 
-NAVY = RGBColor(0x0D, 0x3B, 0x66)
-TEAL = RGBColor(0x1D, 0x6F, 0xA5)
-ACCENT = RGBColor(0xF4, 0xA2, 0x61)
-INK = RGBColor(0x22, 0x2B, 0x38)
-GRAY = RGBColor(0x5F, 0x6B, 0x7A)
+BLACK = RGBColor(0x00, 0x00, 0x00)
+INK = RGBColor(0x1A, 0x1A, 0x1A)
+GRAY = RGBColor(0x59, 0x59, 0x59)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-CODE_RED = RGBColor(0x8B, 0x1A, 0x1A)
-LINK = RGBColor(0x1D, 0x6F, 0xA5)
 
-HEADER_FILL = "0D3B66"
-BAND_FILL = "F4F8FD"
-SOFT_BLUE = "EAF3FB"
-CALLOUT_FILL = "F1F7FD"
-LIVE_FILL = "FFF4E5"
-BORDER = "D9E2EC"
+HEADER_FILL = "000000"
+BAND_FILL = "F2F2F2"
+SOFT_GRAY = "E6E6E6"
+CALLOUT_FILL = "F2F2F2"
+LIVE_FILL = "EDEDED"
+BORDER = "BFBFBF"
 
-# Content width on A4 with 1.9 cm margins: 21 - 3.8 = 17.2 cm.
+# Content width on A4 with 1.7 cm margins: 21 - 3.4 = 17.6 cm.
 WIDTHS = {
-    2: [4.4, 12.8],
-    3: [4.2, 6.3, 6.7],
-    8: [1.3, 2.2, 2.4, 2.4, 3.2, 2.4, 1.5, 1.8],
+    2: [4.2, 13.4],
+    3: [4.0, 6.4, 7.2],
+    5: [1.2, 4.0, 4.2, 1.4, 6.8],
+    8: [1.3, 2.3, 2.5, 2.5, 3.2, 2.5, 1.5, 1.8],
 }
 
 TOKEN_RE = re.compile(
@@ -152,6 +149,13 @@ def set_table_fixed_layout(table) -> None:
     tbl_pr.append(layout)
 
 
+def cant_split(row) -> None:
+    tr_pr = row._tr.get_or_add_trPr()
+    el = OxmlElement("w:cantSplit")
+    el.set(qn("w:val"), "true")
+    tr_pr.append(el)
+
+
 def repeat_header(row) -> None:
     tr_pr = row._tr.get_or_add_trPr()
     header = OxmlElement("w:tblHeader")
@@ -193,7 +197,7 @@ def add_hyperlink(paragraph, url: str, text: str, bold=False, italic=False, size
         if url.endswith(".md"):
             url = GITHUB_DOCS + url
         else:
-            add_run(paragraph, text, bold, italic, size, color or LINK)
+            add_run(paragraph, text, bold, italic, size, color or BLACK)
             return
 
     part = paragraph.part
@@ -212,7 +216,7 @@ def add_hyperlink(paragraph, url: str, text: str, bold=False, italic=False, size
     if italic:
         r_pr.append(OxmlElement("w:i"))
     c = OxmlElement("w:color")
-    c.set(qn("w:val"), str(color or LINK))
+    c.set(qn("w:val"), str(color or BLACK))
     r_pr.append(c)
     sz = OxmlElement("w:sz")
     sz.set(qn("w:val"), str(int((size or 10.5) * 2)))
@@ -259,10 +263,10 @@ def add_inline(paragraph, text: str, bold=False, italic=False, size=None, color=
                 bold,
                 italic,
                 (size or 10.5) - 1.5,
-                CODE_RED,
+                BLACK,
                 "Consolas",
             )
-            shade_run(run, "F2F6FB")
+            shade_run(run, "F2F2F2")
         elif token.startswith("["):
             link = re.match(r"\[([^\]]+)\]\(([^)]+)\)", token)
             if link:
@@ -296,24 +300,24 @@ def add_inline(paragraph, text: str, bold=False, italic=False, size=None, color=
 section = doc.sections[0]
 section.page_width = Cm(21)
 section.page_height = Cm(29.7)
-section.top_margin = Cm(1.9)
-section.bottom_margin = Cm(1.8)
-section.left_margin = Cm(1.9)
-section.right_margin = Cm(1.9)
+section.top_margin = Cm(1.7)
+section.bottom_margin = Cm(1.7)
+section.left_margin = Cm(1.7)
+section.right_margin = Cm(1.7)
 section.different_first_page_header_footer = True
 
 normal = doc.styles["Normal"]
 normal.font.name = "Calibri"
-normal.font.size = Pt(10.5)
+normal.font.size = Pt(10)
 normal.font.color.rgb = INK
-normal.paragraph_format.space_after = Pt(5)
-normal.paragraph_format.line_spacing = 1.12
+normal.paragraph_format.space_after = Pt(3.5)
+normal.paragraph_format.line_spacing = 1.08
 
 for name, size, color, before, after in (
-    ("Heading 1", 30, NAVY, 0, 6),
-    ("Heading 2", 17, NAVY, 15, 5),
-    ("Heading 3", 12.5, TEAL, 11, 3),
-    ("Heading 4", 10.5, TEAL, 9, 2),
+    ("Heading 1", 26, BLACK, 0, 4),
+    ("Heading 2", 14.5, BLACK, 12, 4),
+    ("Heading 3", 11.5, BLACK, 8, 2),
+    ("Heading 4", 10.5, BLACK, 7, 2),
 ):
     style = doc.styles[name]
     style.font.name = "Calibri"
@@ -326,12 +330,12 @@ for name, size, color, before, after in (
 
 # Header (pages 2+)
 header_p = section.header.paragraphs[0]
-header_p.text = "S6 ICT SBA Task 2  ·  CampusConnect"
+header_p.text = "S6 ICT SBA Task 2  Â·  CampusConnect"
 header_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 for run in header_p.runs:
     run.font.size = Pt(8.5)
     run.font.color.rgb = GRAY
-set_paragraph_border(header_p, "bottom", "E4EEF8", 6, 2)
+set_paragraph_border(header_p, "bottom", "D9D9D9", 6, 2)
 
 # Footer (pages 2+)
 footer_p = section.footer.paragraphs[0]
@@ -341,7 +345,7 @@ add_run(footer_p, "Page ", size=8.5, color=GRAY)
 add_field(footer_p, "PAGE")
 add_run(footer_p, " of ", size=8.5, color=GRAY)
 add_field(footer_p, "NUMPAGES")
-set_paragraph_border(footer_p, "top", "E4EEF8", 6, 4)
+set_paragraph_border(footer_p, "top", "D9D9D9", 6, 4)
 
 # First-page header/footer are intentionally blank.
 section.first_page_header.paragraphs[0].text = ""
@@ -357,7 +361,7 @@ def add_body_paragraph(text: str) -> None:
     if cover_mode:
         p.paragraph_format.space_before = Pt(2)
         p.paragraph_format.space_after = Pt(8)
-        add_inline(p, text, size=11.5, color=GRAY)
+        add_inline(p, text, size=10.5, color=GRAY)
     else:
         add_inline(p, text)
 
@@ -367,7 +371,7 @@ def add_heading(text: str, level: int) -> None:
     if level == 1 and first_h1:
         eyebrow = doc.add_paragraph()
         eyebrow.paragraph_format.space_after = Pt(8)
-        add_run(eyebrow, "S6 ICT  ·  ELECTIVE B1", bold=True, size=10, color=ACCENT)
+        add_run(eyebrow, "S6 ICT  Â·  ELECTIVE B1", bold=True, size=10, color=BLACK)
         first_h1 = False
 
     p = doc.add_paragraph(style=f"Heading {level}")
@@ -377,9 +381,9 @@ def add_heading(text: str, level: int) -> None:
         line = doc.add_paragraph()
         line.paragraph_format.space_before = Pt(0)
         line.paragraph_format.space_after = Pt(12)
-        set_paragraph_border(line, "bottom", "F4A261", 14, 1)
+        set_paragraph_border(line, "bottom", "000000", 14, 1)
     elif level == 2:
-        set_paragraph_border(p, "bottom", "E4EEF8", 8, 2)
+        set_paragraph_border(p, "bottom", "D9D9D9", 8, 2)
 
 
 def add_bullet(text: str, level: int) -> None:
@@ -400,7 +404,7 @@ def add_numbered(number: str, text: str, level: int) -> None:
     p.paragraph_format.first_line_indent = Cm(-0.5)
     p.paragraph_format.space_after = Pt(2)
     p.paragraph_format.line_spacing = 1.08
-    add_run(p, f"{number}. ", bold=True, color=NAVY)
+    add_run(p, f"{number}. ", bold=True, color=BLACK)
     add_inline(p, text)
 
 
@@ -422,7 +426,7 @@ def add_quote_block(lines: list[str]) -> None:
         p.paragraph_format.line_spacing = 1.1
         add_inline(p, " ".join(group))
         shade_paragraph(p, CALLOUT_FILL)
-        set_paragraph_border(p, "left", "F4A261", 18, 6)
+        set_paragraph_border(p, "left", "000000", 18, 6)
 
 
 def add_hr() -> None:
@@ -478,10 +482,11 @@ def add_table(block: list[str]) -> bool:
     else:
         table.autofit = True
 
-    font_size = 10 if metadata else (8 if cols >= 7 else 9.5 if cols >= 5 else 9)
+    font_size = 9.5 if metadata else (8.5 if cols >= 5 else 9)
 
     if metadata:
         for row_index, row in enumerate(data):
+            cant_split(table.rows[row_index])
             cells = table.rows[row_index].cells
             is_live = row[0].strip() == "Live app"
             for col_index in range(2):
@@ -489,17 +494,18 @@ def add_table(block: list[str]) -> bool:
                 if is_live:
                     set_cell_shading(cell, LIVE_FILL)
                 elif col_index == 0:
-                    set_cell_shading(cell, SOFT_BLUE)
+                    set_cell_shading(cell, SOFT_GRAY)
                 cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 p = cell.paragraphs[0]
                 p.paragraph_format.space_after = Pt(1)
                 p.paragraph_format.space_before = Pt(1)
                 p.paragraph_format.line_spacing = 1.0
                 if col_index == 0:
-                    add_inline(p, row[col_index], bold=True, size=font_size, color=NAVY)
+                    add_inline(p, row[col_index], bold=True, size=font_size, color=BLACK)
                 else:
                     add_inline(p, row[col_index], size=13 if is_live else font_size)
     else:
+        cant_split(table.rows[0])
         header_cells = table.rows[0].cells
         for col_index in range(cols):
             cell = header_cells[col_index]
@@ -513,6 +519,7 @@ def add_table(block: list[str]) -> bool:
         repeat_header(table.rows[0])
 
         for row_index, row in enumerate(data):
+            cant_split(table.rows[row_index + 1])
             cells = table.rows[row_index + 1].cells
             for col_index in range(cols):
                 cell = cells[col_index]
@@ -539,8 +546,8 @@ def add_code_block(code: str) -> None:
     p.paragraph_format.space_after = Pt(8)
     p.paragraph_format.line_spacing = 1.05
     run = add_run(p, code, size=8.5, color=INK, font="Consolas")
-    shade_run(run, "F2F6FB")
-    set_paragraph_border(p, "left", "D9E2EC", 12, 4)
+    shade_run(run, "F2F2F2")
+    set_paragraph_border(p, "left", "BFBFBF", 12, 4)
 
 
 # ---------------------------------------------------------------------------
@@ -643,10 +650,11 @@ if buffer:
     add_body_paragraph(" ".join(part.strip() for part in buffer))
 
 # Document metadata
-doc.core_properties.title = "S6 ICT SBA Task 2 — CampusConnect"
+doc.core_properties.title = "S6 ICT SBA Task 2 â€” CampusConnect"
 doc.core_properties.subject = "Testing and Evaluation"
 doc.core_properties.author = "S6 ICT"
 doc.core_properties.comments = "Student brief for the CampusConnect testing task."
 
 doc.save(OUT)
 print(f"Wrote {OUT}")
+
