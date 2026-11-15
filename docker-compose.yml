@@ -1,0 +1,48 @@
+name: campusconnect
+
+services:
+  # Public entry point: serves static files and proxies PHP to PHP-FPM.
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${APP_PORT:-8080}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./app:/var/www/html:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: php/Dockerfile
+    image: campusconnect-php:latest
+    volumes:
+      - ./app:/var/www/html
+      - dbdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9000 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  # Replaces the live SQLite file with the pristine seed every N seconds.
+  db-restore:
+    build:
+      context: .
+      dockerfile: php/Dockerfile
+    image: campusconnect-php:latest
+    entrypoint: ["/usr/local/bin/restore.sh"]
+    environment:
+      RESTORE_INTERVAL_SECONDS: "${RESTORE_INTERVAL_SECONDS:-300}"
+    volumes:
+      - dbdata:/data
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  dbdata:

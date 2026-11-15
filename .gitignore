@@ -1,0 +1,6 @@
+.env
+*.log
+*.pdf
+docs/TEACHER_NOTES.md
+.DS_Store
+Thumbs.db
