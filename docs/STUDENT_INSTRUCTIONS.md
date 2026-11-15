@@ -63,7 +63,7 @@ Do not wait for a list of bugs. Use the B1 topics and the source code to design 
 - Output and data
 - Design and usability
 
-Strong students explain **why** each test matters and follow up on unexpected results. Weak students only test the happy path.
+Strong answers explain **why** each test matters and follow up on unexpected results. Weaker answers only test the happy path.
 
 ## 5. Sample test plan, log and suggestion
 

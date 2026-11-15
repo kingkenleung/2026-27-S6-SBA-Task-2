@@ -17,7 +17,7 @@
 - **15 test cases** means 15 test plans and 15 test logs; each test has one plan row and one log row.
 - **Evidence** can be a labelled screenshot, an HTTP request/response, or a short recording.
 - Credit is for systematic testing, clear evidence and useful suggestions — not for finding every bug.
-- Strong students confirm each finding in the running app and explain its impact. Weak students report surface symptoms without follow-up.
+- Strong answers confirm each finding in the running app and explain its impact. Weaker answers report surface symptoms without follow-up.
 - The teacher may adjust marks for individual or group work. A short viva can confirm ownership.
 - The student brief is `STUDENT_INSTRUCTIONS.md` / `STUDENT_INSTRUCTIONS.docx`.
 
