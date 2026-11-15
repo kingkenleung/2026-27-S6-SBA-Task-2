@@ -135,72 +135,193 @@ the `db-restore` service.
     └── RUBRIC.md
 ```
 
-## Deploying to GCP Compute Engine
+## Deploying to GCP Compute Engine (cheapest)
 
-The app is intentionally vulnerable, so the firewall rule is the most important
-step. **Do not use `0.0.0.0/0`.** Use the public IP of the school/classroom
-network, and shut the instance down after the lesson.
+The cheapest practical machine is **e2-micro** (2 shared vCPU, 1 GB RAM) with
+**Ubuntu 22.04 LTS**, a **10 GB standard persistent disk**, and no service
+account. Two regions make sense:
 
-1. Create a small VM (Ubuntu 22.04 LTS, `e2-small` is enough):
+| Region | Trade-off | Approx. cost while running 24/7 |
+|---|---|---|
+| `us-central1` (Iowa) | Always Free e2-micro + 30 GB standard disk; higher latency from HK | ~US$3.65/month for the external IPv4 + small egress |
+| `asia-east2` (Hong Kong) | Low latency for HK classrooms; not free-tier eligible | ~US$12.6/month (compute + IPv4 + disk) |
 
-   ```bash
-   gcloud compute instances create campusconnect \
-     --zone=asia-east2-a \
-     --machine-type=e2-small \
-     --image-family=ubuntu-2204-lts \
-     --image-project=ubuntu-os-cloud \
-     --tags=campusconnect
-   ```
+If you are still inside the US$300 / 90-day Free Trial, use `asia-east2` for the
+better classroom experience. After the trial, use `us-central1` if the absolute
+lowest cost matters, or keep `asia-east2` for about US$12/month.
 
-2. Allow only your classroom's public IP (replace the example address):
+Avoid **Spot/preemptible** VMs for a live lesson: they can be stopped with 30
+seconds' notice.
 
-   ```bash
-   gcloud compute firewall-rules create campusconnect-web \
-     --allow=tcp:8080 \
-     --source-ranges=203.0.113.10/32 \
-     --target-tags=campusconnect
-   ```
+### 1. Set up the project
 
-3. SSH in and install Docker Engine plus the Compose plugin:
+```bash
+gcloud config set project YOUR_PROJECT_ID
+gcloud services enable compute.googleapis.com iap.googleapis.com
+```
 
-   ```bash
-   gcloud compute ssh campusconnect --zone=asia-east2-a
-   curl -fsSL https://get.docker.com | sudo sh
-   sudo usermod -aG docker "$USER"
-   newgrp docker
-   docker compose version
-   ```
+Find the public IP of the school network (run this from a school machine):
 
-4. Upload or clone the project, then start it. Use a **private** repository
-   if you keep teacher-only material in the project.
+```bash
+curl -4 ifconfig.me
+```
 
-   ```bash
-   git clone <your-private-repo> campusconnect
-   cd campusconnect
-   BIND_ADDR=0.0.0.0 APP_PORT=8080 docker compose up -d --build
-   ```
+### 2. Firewall: only your classroom
 
-5. Browse to `http://<VM-external-IP>:8080/`.
+Do **not** open port 8080 to `0.0.0.0/0`.
 
-6. After the lesson:
+```bash
+gcloud compute firewall-rules create campusconnect-web \
+  --allow=tcp:8080 \
+  --source-ranges=YOUR_SCHOOL_IP/32 \
+  --target-tags=campusconnect \
+  --description="CampusConnect student lab"
 
-   ```bash
-   docker compose down -v
-   gcloud compute instances stop campusconnect --zone=asia-east2-a
-   ```
+gcloud compute firewall-rules create campusconnect-ssh \
+  --allow=tcp:22 \
+  --source-ranges=35.235.240.0/20 \
+  --target-tags=campusconnect \
+  --description="SSH via Identity-Aware Proxy only"
+```
 
-Notes:
+`35.235.240.0/20` is Google's IAP TCP-forwarding range. This lets you SSH from
+Cloud Shell or any authorised machine without exposing port 22 to the school
+network.
 
-- Keep SSH restricted to IAP or your own IP. Never open port 8080 to
-  `0.0.0.0/0`.
-- The VM's external IP may change after a stop/start. Reserve a static IP if
-  students need a stable URL.
-- If you need HTTPS, terminate it in front of nginx (GCP HTTPS load balancer,
-  Caddy, or a TLS-enabled nginx). HTTPS protects credentials in transit but does
-  **not** fix the application vulnerabilities students are testing.
-- Do not attach a powerful service account to the VM.
-- The reset sidecar is a convenience for shared classroom use, not a security
-  control.
+If the school's public IP changes, update only the web rule:
+
+```bash
+gcloud compute firewall-rules update campusconnect-web --source-ranges=NEW_IP/32
+```
+
+If this is a dedicated project, check whether the default network has a broad
+SSH rule and remove it if you do not need it:
+
+```bash
+gcloud compute firewall-rules list --filter="name=default-allow-ssh"
+# gcloud compute firewall-rules delete default-allow-ssh
+```
+
+### 3. Create the VM
+
+For the absolute cheapest (US free tier):
+
+```bash
+gcloud compute instances create campusconnect \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --image-family=ubuntu-2204-lts \
+  --image-project=ubuntu-os-cloud \
+  --boot-disk-size=10GB \
+  --boot-disk-type=pd-standard \
+  --tags=campusconnect \
+  --no-service-account \
+  --no-scopes \
+  --metadata=enable-oslogin=TRUE
+```
+
+For Hong Kong, change `--zone=us-central1-a` to `--zone=asia-east2-a`.
+
+### 4. SSH in and add swap
+
+```bash
+gcloud compute ssh campusconnect --zone=us-central1-a --tunnel-through-iap
+```
+
+1 GB of RAM is enough for this app, but a 1 GB swap file makes the first Docker
+build safer:
+
+```bash
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+free -h
+```
+
+### 5. Install Docker
+
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker "$USER"
+newgrp docker
+docker compose version
+```
+
+If `newgrp` does not take effect, log out and SSH in again, or prefix commands
+with `sudo`.
+
+### 6. Clone and configure
+
+```bash
+git clone https://github.com/kingkenleung/2026-27-S6-SBA-Task-2.git
+cd 2026-27-S6-SBA-Task-2
+cat > .env <<'EOF'
+BIND_ADDR=0.0.0.0
+APP_PORT=8080
+RESTORE_INTERVAL_SECONDS=300
+EOF
+```
+
+### 7. Start
+
+```bash
+docker compose up -d --build
+docker compose ps
+curl -s http://127.0.0.1:8080/healthz
+```
+
+The first build takes a few minutes. Wait for `app` to show `healthy`.
+
+### 8. Open the app
+
+Get the external IP:
+
+```bash
+gcloud compute instances describe campusconnect \
+  --zone=us-central1-a \
+  --format='get(networkInterfaces[0].accessConfigs[0].natIP)'
+```
+
+Browse to `http://EXTERNAL_IP:8080/`.
+
+Use the student accounts (`alice` / `alice1234`, etc.). Staff access is for the
+teacher. The database resets every 5 minutes.
+
+### 9. Cost control
+
+Create a small budget alert in **Billing → Budgets & alerts** (for example
+US$5 or US$10). Stop the VM when the class is not using it:
+
+```bash
+gcloud compute instances stop campusconnect --zone=us-central1-a
+gcloud compute instances start campusconnect --zone=us-central1-a
+```
+
+An ephemeral external IP is released when the VM stops and may change when it
+starts. Reserve a static IP only if you need a stable URL (it is billed even
+while the VM is stopped).
+
+After the unit, delete the VM and disk:
+
+```bash
+gcloud compute instances delete campusconnect \
+  --zone=us-central1-a --delete-disks=all
+gcloud compute firewall-rules delete campusconnect-web campusconnect-ssh
+```
+
+### Notes
+
+- Keep SSH restricted to IAP. Do not expose port 8080 to the whole internet.
+- Because the firewall allows only the school public IP, students must be on
+  the school network (or a school VPN) to reach the app. Add all school egress
+  IPs to `--source-ranges` if your school uses more than one.
+- Use a dedicated, low-privilege project with no real data.
+- The app is intentionally vulnerable. HTTP is acceptable only for this
+  restricted, fictional-data lab; add HTTPS if you ever expose it beyond the
+  classroom.
+- The reset sidecar is a convenience, not a security control.
 
 ## Customising
 
