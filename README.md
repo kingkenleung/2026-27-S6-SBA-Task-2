@@ -132,7 +132,9 @@ the `db-restore` service.
 ├── db/seed.sql                 # schema + dummy users/contacts
 └── docs/
     ├── STUDENT_INSTRUCTIONS.md
-    └── RUBRIC.md
+    ├── STUDENT_INSTRUCTIONS.docx
+    ├── RUBRIC.md
+    └── make_docx.py
 ```
 
 ## Deploying to GCP Compute Engine (cheapest)
@@ -346,6 +348,14 @@ gcloud compute firewall-rules delete campusconnect-web campusconnect-ssh
 
 ## Documentation
 
-- **Student brief:** [`docs/STUDENT_INSTRUCTIONS.md`](docs/STUDENT_INSTRUCTIONS.md)
+- **Student brief (Markdown):** [`docs/STUDENT_INSTRUCTIONS.md`](docs/STUDENT_INSTRUCTIONS.md)
+- **Student brief (DOCX):** [`docs/STUDENT_INSTRUCTIONS.docx`](docs/STUDENT_INSTRUCTIONS.docx)
 - **Marking rubric:** [`docs/RUBRIC.md`](docs/RUBRIC.md)
+
+The DOCX is generated from the Markdown with:
+
+```bash
+python docs/make_docx.py
+```
+
 - **Curriculum reference:** [Elective B1 – Web Programming and Application](https://spycit.notion.site/Elective-B1-Web-Programming-and-Application-c9960271cb1d43d1883b5bfaabdaef2e?pvs=74)

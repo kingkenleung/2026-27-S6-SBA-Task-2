@@ -6,6 +6,7 @@
 
 | | |
 |---|---|
+| **Live app** | **http://34.92.173.24:8080/** |
 | Student name | ______________________________ |
 | Class / group | ______________________________ |
 | Teacher | ______________________________ |
@@ -19,6 +20,10 @@
 Sunrise College is piloting **CampusConnect**, a small phonebook built by a
 summer intern. Staff and students can sign in, search the campus directory and
 add contact details. The school plans to launch it next term.
+
+> **Live app:** <http://34.92.173.24:8080/>
+>
+> You must be on the **school network** (or school VPN) to reach it.
 
 The IT panel has asked your team to act as independent testers. The prototype
 has **not** been security reviewed and the intern has already left. Your job is
@@ -69,8 +74,15 @@ CampusConnect has **three pages**:
 | Phonebook | `/board.php` | Search contacts, view the directory, add a contact |
 | Admin console | `/admin.php` | Staff view of user accounts and contacts |
 
-The teacher will give you the base URL, for example
-`http://192.168.1.20:8080/`.
+The live app is at **<http://34.92.173.24:8080/>**. It is reachable only from
+the school network (or school VPN). If the page does not load, check your
+connection or ask your teacher.
+
+### Quick start
+
+1. Connect to the school network.
+2. Open <http://34.92.173.24:8080/>.
+3. Sign in with a student account (for example `alice` / `alice1234`).
 
 ### Test accounts
 
@@ -273,8 +285,8 @@ most, why, and what the school should do next.
 
 ## 5. Rules and ethics
 
-You have permission to test **only** the CampusConnect instance provided by
-your teacher.
+You have permission to test **only** the CampusConnect instance at
+<http://34.92.173.24:8080/>.
 
 - **Stay in scope.** Do not test the school network, the teacher's computer,
   other students' devices, or any other website.
